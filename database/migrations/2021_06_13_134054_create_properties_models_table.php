@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up()
     {
         Schema::create('properties', function (Blueprint $table) {
-            $table->bigInteger('id');
+            $table->bigInteger('id')->primary();
             $table->string('title')->nullable();
             $table->json('property_type')->nullable();
             $table->json('transaction_type')->nullable();
