@@ -3,9 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\PropertiesModel;
+
+use App\Models\User;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+
 
 class PropertiesManagementFeatureTest extends TestCase
 {
@@ -13,8 +16,9 @@ class PropertiesManagementFeatureTest extends TestCase
 
     public function testPropertyStatusIsUpdatedProperlyWithAnAvailableStatus(): void
     {
+
         $property = PropertiesModel::factory()->create(['status' => 'available']);
-        $response = $this->putJson(route('properties.update', [$property->id]), ['status' => 'rented']);
+        $response = $this->actingAsAuthenticatedUser()->putJson(route('properties.update', [$property->id]), ['status' => 'rented']);
         $response->assertOk();
         self::assertTrue($response->json('saved'));
         self::assertSame($response->json('data')['status'], 'rented');
@@ -23,7 +27,7 @@ class PropertiesManagementFeatureTest extends TestCase
     public function testPropertyStatusFailsIfSendAnUnavailableStatus(): void
     {
         $property = PropertiesModel::factory()->create(['status' => 'available']);
-        $response = $this->putJson(route('properties.update', [$property->id]), ['status' => 'not-available']);
+        $response = $this->actingAsAuthenticatedUser()->putJson(route('properties.update', [$property->id]), ['status' => 'not-available']);
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);//422: Validation error code from Laravel
         $resultantProperty = PropertiesModel::select('status')->findOrFail($property->id);
         //Check that status is not updated...
@@ -33,7 +37,7 @@ class PropertiesManagementFeatureTest extends TestCase
     public function testPropertyIsDeletedProperly(): void
     {
         $property = PropertiesModel::factory()->create();
-        $response = $this->deleteJson(route('properties.destroy', [$property->id]));
+        $response = $this->actingAsAuthenticatedUser()->deleteJson(route('properties.destroy', [$property->id]));
         $response->assertOk();
         self::assertTrue($response->json('deleted'));
         //Properties table should be empty after delete the only existing row.
@@ -41,12 +45,36 @@ class PropertiesManagementFeatureTest extends TestCase
 
     }
 
-    public function testPropertyIsShowProperly(): void
+    /**
+     * Helper method to perform authentication and send JWT header
+     * @return $this
+     */
+    protected function actingAsAuthenticatedUser(): PropertiesManagementFeatureTest
     {
-        $property = PropertiesModel::factory()->create();
-        $response = $this->getJson(route('properties.show', [$property->id]));
-        $response->assertOk();
-        self::assertSame($response->json('id'), $property->id);
-        self::assertSame($response->json('title'), $property->title);
+        $plainPassword = "12345";
+        $authUser = User::factory()->create([
+            'name' => 'admin',
+            'email' => 'admin@example.com',
+            'password' => $plainPassword,
+        ]);
+
+
+        $token = auth('api')->attempt([
+            'email' => $authUser->email,
+            'password' => $plainPassword
+        ]);
+
+        $this->withHeaders(
+            array_merge([
+                $this->defaultHeaders,
+                ['Authorization' => 'Bearer '.$token]
+            ])
+        );
+
+        return $this;
     }
+
+    /**
+     * @TODO: More tests should be implemented in order to incremente code coverage and more use cases
+     */
 }

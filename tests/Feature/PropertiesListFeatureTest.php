@@ -45,7 +45,7 @@ class PropertiesListFeatureTest extends TestCase
         $filteredValue = 1;
         PropertiesModel::factory()->count($expectedFilteredResults)->create(['transaction_type->id' => $filteredValue]);
         PropertiesModel::factory()->count(random_int(1, 4))->create(['transaction_type->id' => random_int(2, 100)]);
-        $response = $this->get(route('properties.index')."?transaction_type_id=$filteredValue");
+        $response = $this->getJson(route('properties.index')."?transaction_type_id=$filteredValue");
         $response->assertJsonCount($expectedFilteredResults);
         $response->assertOk();
     }
@@ -60,7 +60,7 @@ class PropertiesListFeatureTest extends TestCase
         $filteredMaxPrice = 299199;
         PropertiesModel::factory()->count($expectedFilteredResults)->create(['price' => random_int(100001, 300000)]);
         PropertiesModel::factory()->count(random_int(1, 4))->create(['price' => random_int(1, 100000)]);
-        $response = $this->get(route('properties.index')."?min_price=$filteredMinPrice&max_price=$filteredMaxPrice");
+        $response = $this->getJson(route('properties.index')."?min_price=$filteredMinPrice&max_price=$filteredMaxPrice");
         $response->assertJsonCount($expectedFilteredResults);
         $response->assertOk();
     }
@@ -74,8 +74,20 @@ class PropertiesListFeatureTest extends TestCase
         $filteredValue = "Foo bar";
         PropertiesModel::factory()->count($expectedFilteredResults)->create(['title' => $filteredValue]);
         PropertiesModel::factory()->count(random_int(1, 4))->create(['title' => $this->faker->sentence]);
-        $response = $this->get(route('properties.index')."?text=$filteredValue");
+        $response = $this->getJson(route('properties.index')."?text=$filteredValue");
         $response->assertJsonCount($expectedFilteredResults);
         $response->assertOk();
     }
+
+    public function testPropertyIsShowProperly(): void
+    {
+        $property = PropertiesModel::factory()->create();
+        $response = $this->getJson(route('properties.show', [$property->id]));
+        $response->assertOk();
+        self::assertSame($response->json('id'), $property->id);
+        self::assertSame($response->json('title'), $property->title);
+    }
+    /**
+     * @TODO: More tests should be implemented in order to incremente code coverage and more use cases
+     */
 }
