@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\Api\PropertiesController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\v1\AuthController;
+use App\Http\Controllers\Api\v1\PropertiesController;
+
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,11 +16,14 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
+Route::group([
+    'middleware' => 'api',
+    'prefix' => 'v1/auth'
+], function ($router) {
+    Route::post('login', [AuthController::class, 'login'])->name('login');
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
+    Route::post('me', [AuthController::class, 'me'])->name('me');
 });
-Route::prefix('v1')->group(function () {
-    Route::resource('properties', PropertiesController::class)->except([
-        'create', 'edit'
-    ]);
-});
+
+Route::apiResource('v1/properties', PropertiesController::class)->middleware('api');
